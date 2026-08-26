@@ -1,0 +1,18 @@
+QuickBenchª Classic 2.0 Test Results File
+©2003 Intech Software Corp.
+Test file created on Tuesday, August 25, 2026 at 10:32:52 PM
+Test Volume name: LaCie FW
+
+Xfer Size     Sequential Read   Sequential Write    Random Read      Random Write
+
+1 KByte       396.197 KB/sec    491.642 KB/sec    118.495 KB/sec    275.164 KB/sec
+2 KBytes        3.749 MB/sec      1.103 MB/sec      3.756 MB/sec      1.119 MB/sec
+4 KBytes        7.358 MB/sec      2.205 MB/sec      7.358 MB/sec      2.262 MB/sec
+8 KBytes       12.027 MB/sec      4.084 MB/sec     12.218 MB/sec      4.222 MB/sec
+16 KBytes      17.923 MB/sec      7.151 MB/sec     17.847 MB/sec      2.395 MB/sec
+32 KBytes      23.743 MB/sec     11.384 MB/sec     23.615 MB/sec     11.555 MB/sec
+64 KBytes      18.788 MB/sec     16.592 MB/sec     28.063 MB/sec     16.384 MB/sec
+128 KBytes     18.033 MB/sec     20.992 MB/sec     20.608 MB/sec     20.931 MB/sec
+256 KBytes     30.620 MB/sec     23.539 MB/sec     13.228 MB/sec     23.306 MB/sec
+512 KBytes     29.913 MB/sec     24.982 MB/sec     17.754 MB/sec     24.968 MB/sec
+1 MByte        30.646 MB/sec     25.813 MB/sec     21.921 MB/sec     25.691 MB/sec

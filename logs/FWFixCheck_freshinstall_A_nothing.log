@@ -1,0 +1,32 @@
+FWFixCheck v7 - did the FWIM speed clamp run?
+Read-only apart from the PhyControl read requests a PHY read needs.
+
+=========================================================
+  SYSTEM HEAP SCAN
+    1. the FWIM hook's counter block  'S8FX' 'v0nn' .. 'ENDS'
+    2. FWServicesLib's speed-map instruction, which must be STOCK
+=========================================================
+System heap 0x00002800 .. 0x0236CAE0  36264 KB
+---------------------------------------------------------
+FWServicesLib speed-map copies:  STOCK 1   OLD-CLAMP 0
+---------------------------------------------------------
+FWIM block @0x00CF7628   build v005   port->node ordering: ASCEND
+  hook calls 1   clamped last 1   total 1
+  PHY reg2 0xE3 (Num_Ports 3)   reg7 0x20   localID 0
+  remote nodes 0   mapped to ports 0   global ceiling S400
+  port 0: not-connected  - skipped, port registers not read
+  port 1: not-connected  - skipped, port registers not read
+  port 2: not-connected  - skipped, port registers not read
+  self-ID node 0  its own sp S800  ->  ceiling S400   (the 1394b device)
+  *** GLOBAL FALLBACK: everything clamped to S400. ***
+  Nothing is attached: no node to map, and the only self-ID is our
+  own. Clamping it to the default S400 costs nothing with no bus
+  traffic and is recomputed on the next reset. EXPECTED for run 1.
+
+=========================================================
+  THE PHY'S OWN VIEW, READ NOW
+=========================================================
+AAPL,address = 0xF5000000
+PCI command register 0x0006  MEM-space ENABLED
+oracle OK: OHCI version 0x00010010  byte order SWAPPED
+now: reg2 0xE3   reg6 0x10   Max_Legacy_SPD 0 (S100)

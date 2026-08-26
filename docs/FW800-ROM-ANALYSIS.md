@@ -2,7 +2,7 @@
 
 Analysed 2026-08-25, entirely on the Mac, no hardware runs.
 
-Source: the user's own FW800 MDD ROM, pulled from `pi3.local:/home/csell/shared/ROM Backups/MDD FW800 ROM/`
+Source: this machine's own FW800 MDD ROM, backed up from the System Folder
 (data fork 2,796,822 + AppleDouble resource fork 616,301).
 
 | | md5 | data fork |

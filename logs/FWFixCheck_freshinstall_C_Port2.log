@@ -1,0 +1,36 @@
+FWFixCheck v7 - did the FWIM speed clamp run?
+Read-only apart from the PhyControl read requests a PHY read needs.
+
+=========================================================
+  SYSTEM HEAP SCAN
+    1. the FWIM hook's counter block  'S8FX' 'v0nn' .. 'ENDS'
+    2. FWServicesLib's speed-map instruction, which must be STOCK
+=========================================================
+System heap 0x00002800 .. 0x02DF47A0  47047 KB
+---------------------------------------------------------
+FWServicesLib speed-map copies:  STOCK 1   OLD-CLAMP 0
+---------------------------------------------------------
+FWIM block @0x00CF7628   build v005   port->node ordering: ASCEND
+  hook calls 14   clamped last 1   total 10
+  PHY reg2 0xE3 (Num_Ports 3)   reg7 0x20   localID 1
+  remote nodes 1   mapped to ports 1   global ceiling S400
+  port 0: not-connected  - skipped, port registers not read
+  port 1: not-connected  - skipped, port registers not read
+  port 2: CHILD  legacy(DS)  negotiated S400
+  self-ID node 0  its own sp S800  ->  ceiling S400   (the 1394b device)
+  node 0 ceiling S400
+  *** PER-CONNECTION. Each node is clamped to its own port. ***
+  ORDERING CHECK, only meaningful with two devices at different
+  speeds: the node whose OWN sp is S800 is the 1394b device. If its
+  ceiling came out S400, the port->node ordering is backwards and the
+  other variant is the right one. Nothing will have failed visibly:
+  a real 1394a device limits itself, so the only casualty is the
+  1394b drive quietly losing S800.
+
+=========================================================
+  THE PHY'S OWN VIEW, READ NOW
+=========================================================
+AAPL,address = 0xF5000000
+PCI command register 0x0006  MEM-space ENABLED
+oracle OK: OHCI version 0x00010010  byte order SWAPPED
+now: reg2 0xE3   reg6 0x50   Max_Legacy_SPD 2 (S400)
