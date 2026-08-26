@@ -77,7 +77,7 @@ GLUE_FPSI      = 0xD62C      # cross-TOC glue for FWServicesLib.FWProcessSelfIDs
 OHCI_BASE_OFF  = 0xDC        # pFWIMData->ohciRegisterBase
 SITES = {0x7004: 30, 0x2D88: 31}   # call site -> register holding pFWIMData
 STOCK_SHORT, PATCHED_SHORT = '2.8.7', '2.8.8'
-BUILD = 5                    # in-band build number: the 'v00N' magic and Get Info
+BUILD = 6                    # in-band build number: the 'v00N' magic and Get Info
 BL_TO_GLUE = {0x7004: 0x48006629, 0x2D88: 0x4800A8A5}
 
 
@@ -91,6 +91,7 @@ ST_NOTPRESENT, ST_NOTCONNECTED, ST_PARENT, ST_CHILD = 0, 1, 2, 3
 NCALLS, PHY2, GCEIL, MODE, TOTAL, LENB, LAST = 8, 12, 16, 20, 24, 28, 32
 LOCALID, NREMOTE, NTABLE, PORT0, REG7, TABLE = 36, 40, 44, 48, 60, 0x44
 NODES, NODEN = 0x60, 0x70          # (phy_ID<<16)|(own sp<<8)|applied ceiling
+CAPPED = 0x74                      # times CLAMP refused an over-long buffer
 
 
 def build_blob(base, order):
@@ -352,7 +353,7 @@ def build_blob(base, order):
     a.li(9, 1)
     a.stw(9, MODE, 28)                             # per-connection
 
-    # ---- clamp. Remote nodes only: leaving our own sp at S800 is exactly what lets
+    # ---- clamp, remote nodes only: leaving our own sp at S800 is exactly what lets
     # the family's min-propagation give S800 to a beta neighbour and S400 to a legacy
     # one in the same speed map.
     a.label('LCLAMP')
@@ -363,19 +364,19 @@ def build_blob(base, order):
     a.lwz(9, TOTAL, 28)
     a.add(9, 9, 3)
     a.stw(9, TOTAL, 28)
-    a.lwz(9, MODE, 28)
-    a.cmpwi(9, 0)
-    a.bc('ne', 'LCALL')
-    a.lwz(5, 0x30, 31)                             # the global fallback also clamps our
-    a.lwz(6, 0x34, 31)                             # own self-ID, matching the proven fix
-    a.bl('CLAMP')
-    a.lwz(9, LAST, 28)                             # count it too, or the fallback path
-    a.add(9, 9, 3)                                 # under-reports and reads as "did nothing"
-    a.stw(9, LAST, 28)
-    a.lwz(9, TOTAL, 28)
-    a.add(9, 9, 3)
-    a.stw(9, TOTAL, 28)
-
+    # The LOCAL self-ID buffer is deliberately never clamped, in either mode.
+    #
+    # Until v006 the global-fallback path also clamped it, purely to mirror what the
+    # earlier family-side fix did. That was belt-and-braces, not necessity: the family
+    # takes the minimum along the path, so min(our sp 3, remote clamped) is the remote
+    # ceiling either way, and the pairwise speeds come out identical without it.
+    #
+    # It was also the one unbounded write in this patch. Its length arrives as
+    # ((pFWIMData->0xb9c - 4) & ~7) + 0x10 with no mask, against a buffer only 32 bytes
+    # long before the remote buffer begins, so a large value there would have sent CLAMP
+    # walking through FWIMData and beyond, rewriting any word that happened to look like
+    # a self-ID packet. Deleting the call removes the whole class of hazard rather than
+    # fencing it. The remote length is masked to 2040 by the FWIM itself and is safe.
     a.label('LCALL')
     a.mr(3, 31)
     a.bl(GLUE_FPSI)
@@ -397,6 +398,18 @@ def build_blob(base, order):
     a.rlwinm(7, 6, 30, 2, 31)
     a.cmpwi(7, 0)
     a.bc('eq', 'CEND')
+    # Defence in depth: the caller's length is not ours to trust. The self-ID buffer is
+    # 2048 bytes, so 512 quadlets is the most that can ever be legitimate. Anything more
+    # is refused outright and counted, rather than clamped to the cap and walked -- an
+    # over-long length means the caller's state is wrong, and scanning ANY of it is
+    # guesswork. This loop writes to memory below task level; it does not get to guess.
+    a.cmpwi(7, 512)
+    a.bc('le', 'CGO')
+    a.lwz(9, CAPPED, 28)
+    a.addi(9, 9, 1)
+    a.stw(9, CAPPED, 28)
+    a.b('CEND')
+    a.label('CGO')
     a.mtctr(7)
     a.add(4, 5, 6)
     a.addi(4, 4, -4)                               # address of the last quadlet

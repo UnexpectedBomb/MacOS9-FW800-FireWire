@@ -13,7 +13,7 @@ project(FWFixCheck C)
 # reports which drivers actually bound, and prints the predicted
 # CheckFWIMPersonality outcome for each controller.
 #
-# The target carries the VERSION in its name (FWFixCheck_v7) so the user can confirm
+# The target carries the VERSION in its name (FWFixCheck_v8) so the user can confirm
 # at a glance which build is being run. Bump it every iteration, and bump the window
 # title in fw_fixcheck.c to match.
 
@@ -21,7 +21,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 add_compile_options(-Wno-multichar -Wall)
 
-add_application(FWFixCheck_v7
+add_application(FWFixCheck_v8
     fw_fixcheck.c
     fw_fixcheck.r
     TYPE     "APPL"
@@ -35,22 +35,22 @@ add_application(FWFixCheck_v7
 #   -   -> GetDriverInformation (driver name + DriverDescription + the
 #                         RegEntryID of the node the driver bound to)
 # (LMGetUnitTableEntryCount is an inline low-memory read; FindFolder/FSp* are InterfaceLib.)
-target_link_libraries(FWFixCheck_v7 NameRegistryLib PCILib)
+target_link_libraries(FWFixCheck_v8 NameRegistryLib PCILib)
 
 if(TARGET retrocrt)
-    add_dependencies(FWFixCheck_v7 retrocrt)
+    add_dependencies(FWFixCheck_v8 retrocrt)
 endif()
 
 # Wrap the raw HFS .dsk in an Apple Partition Map so OS 9 will mount it.
 set(WRAP_APM ${CMAKE_CURRENT_SOURCE_DIR}/../../client/scripts/wrap-apm.py)
 add_custom_command(
-    OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/FWFixCheck_v7.img
+    OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/FWFixCheck_v8.img
     COMMAND /usr/bin/env python3 ${WRAP_APM}
-            ${CMAKE_CURRENT_BINARY_DIR}/FWFixCheck_v7.dsk
-            ${CMAKE_CURRENT_BINARY_DIR}/FWFixCheck_v7.img
-            FWFixCheck_v7
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/FWFixCheck_v7.dsk ${WRAP_APM}
-    COMMENT "Wrapping FWFixCheck_v7.dsk in Apple Partition Map -> FWFixCheck_v7.img"
+            ${CMAKE_CURRENT_BINARY_DIR}/FWFixCheck_v8.dsk
+            ${CMAKE_CURRENT_BINARY_DIR}/FWFixCheck_v8.img
+            FWFixCheck_v8
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/FWFixCheck_v8.dsk ${WRAP_APM}
+    COMMENT "Wrapping FWFixCheck_v8.dsk in Apple Partition Map -> FWFixCheck_v8.img"
     VERBATIM)
-add_custom_target(FWFixCheck_v7_disk ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/FWFixCheck_v7.img)
-add_dependencies(FWFixCheck_v7_disk FWFixCheck_v7_APPL)
+add_custom_target(FWFixCheck_v8_disk ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/FWFixCheck_v8.img)
+add_dependencies(FWFixCheck_v8_disk FWFixCheck_v8_APPL)

@@ -1,5 +1,5 @@
 /*
- * FWFixCheck v7 — did the FWIM speed clamp run, and what did the PHY say?
+ * FWFixCheck v8 — did the FWIM speed clamp run, and what did the PHY say?
  *
  * The S800 fix lives in `FireWire Enabler`: OHCIFWIM is hooked immediately before it
  * hands the self-IDs up to `FWProcessSelfIDs`, reads the PHY, and clamps every self-ID
@@ -129,7 +129,7 @@ static Boolean LogTryDir(short vRefNum, long dirID, const char *label)
     Str255 volName;
 
     gLog.lastErr = noErr;
-    err = FSMakeFSSpec(vRefNum, dirID, "\pFWFixCheck_v7.log", &spec);
+    err = FSMakeFSSpec(vRefNum, dirID, "\pFWFixCheck_v8.log", &spec);
     if (err != noErr && err != fnfErr) { gLog.lastErr = err; return false; }
     if (spec.name[0] == 0)             { gLog.lastErr = err ? err : paramErr; return false; }
 
@@ -448,6 +448,7 @@ static Boolean OracleCalibrate(void)
 #define kWOrder    21
 #define kWNodes    24             /* 24..27: (phy_ID<<16)|(own sp<<8)|ceiling */
 #define kWNodeN    28
+#define kWCapped   29            /* CLAMP refused an over-long buffer */
 #define kWords     32
 
 #define kMaxHits  4
@@ -543,6 +544,17 @@ static void ReportBlock(short i)
         if (((e >> 8) & 3) == 3)
             PStrCat(line, "   (the 1394b device)");
         Summary(line);
+    }
+
+    if (c[kWCapped]) {
+        line[0] = 0;
+        PStrCat(line, "  *** OVER-LONG SELF-ID BUFFER REFUSED ");
+        PStrCatNum(line, (long)c[kWCapped]);
+        PStrCat(line, " TIME(S). ***");
+        Summary(line);
+        SummaryText("  The FWIM handed the hook a buffer longer than a self-ID buffer can");
+        SummaryText("  be. It was refused untouched rather than walked. Report this: it is");
+        SummaryText("  the condition that could previously have corrupted memory.");
     }
 
     if (c[kWMode]) {
@@ -790,7 +802,7 @@ static void ShowResultWindow(void)
     bounds.right  = bounds.left + 660;
     bounds.bottom = bounds.top  + 460;
 
-    win = NewWindow(NULL, &bounds, "\pFireWire S800 Fix Check v7", true, documentProc,
+    win = NewWindow(NULL, &bounds, "\pFireWire S800 Fix Check v8", true, documentProc,
                     (WindowPtr)-1L, false, 0);
     if (win == NULL) return;
     SetPort((GrafPtr)win);
@@ -859,7 +871,7 @@ int main(void)
     InitCursor();
 
     LogOpen();
-    LogText("FWFixCheck v7 - did the FWIM speed clamp run?");
+    LogText("FWFixCheck v8 - did the FWIM speed clamp run?");
     LogText("Read-only apart from the PhyControl read requests a PHY read needs.");
     LogText("");
 

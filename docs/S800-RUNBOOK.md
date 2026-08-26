@@ -182,6 +182,68 @@ With nothing attached, the only self-ID is the Mac's own, and the reporter tags 
 The tag is only meaningful with two devices at different speeds, which is the case it was written
 for. Worth qualifying with the local node ID if FWFixCheck is rebuilt for any other reason.
 
+### Reproduced, caught in MacsBug, and what it did to the attribution (2026-08-26)
+
+The hang was **reproduced deliberately** on the fresh install: LaCie on the FW800 port, iBook in
+TDM on FW400 port 2, roughly 10 minutes idle. MacsBug caught it:
+
+```
+Bus Error at FFC2DE72 _Fix2Frac+0027E
+while reading long word from 67076E88 in User data space
+CurApName  Finder
+```
+
+plus, on starting the log, **`*** MacsBug code has been changed ***`**. That last line is the
+important one: MacsBug checksums its own code, so this is genuine **memory corruption**, not a
+device going quiet. The `_Fix2Frac+0027E` symbol is noise, MacsBug naming the nearest preceding
+symbol it knows; `FFC2DE72` is 68K code in ROM.
+
+⚠ The MacsBug session was then lost to a bad instruction of mine: `f 2800 2400000 'S8FX'`, a
+36 MB search run through a debugger whose own code was corrupt. **Record the FWIM block address
+from FWFixCheck BEFORE an idle test**, then `dm <address> 80` directly. Failing that, bound the
+search: the block has landed between `0x00CF….` and `0x00E7….` on every boot, so
+`f C00000 400000 'S8FX'` is enough.
+
+#### A real defect found in this patch as a result
+
+Reviewing against that evidence: `CLAMP` took its buffer length from the parameter block and
+looped length/4 times, rewriting any word matching a self-ID packet. The **remote** length is
+masked to 2040 by the FWIM inside a 2048-byte buffer, safe. The **local** length was not: it
+arrives as `((pFWIMData->0xb9c - 4) & ~7) + 0x10` with no mask, against a buffer only 32 bytes
+long before the remote buffer starts.
+
+Fixed in **v006**: the local buffer is no longer clamped in either mode, and `CLAMP` refuses any
+buffer over 512 quadlets outright (counted at scratch+0x74) rather than capping and walking. See
+the comments at both sites for why refusing beats capping.
+
+#### The v006 re-run does NOT validate the fix
+
+Same configuration, 30 minutes, no hang — but the before and after logs are **identical**, both
+reading `hook calls 2, clamped last 0, total 0`. Two things follow, and the second is worth more
+than the first:
+
+* **The hook was dormant for the whole idle.** Zero bus resets. Any bus-reset-storm mechanism is
+  ruled out, and the hook was not executing when the Finder died.
+* **v006's change was inert here.** The local-buffer clamp only runs in global-fallback mode and
+  this run was per-connection throughout, so v005 would have behaved identically. The absence of
+  a hang says nothing about the fix.
+
+What it does establish is stronger than a passed test. `clamped 0` means that in this exact
+configuration the hook rewrites **no self-ID data at all** — both nodes' own sp already matched
+their ceilings — so its entire memory footprint is its own 128-byte scratch block. That is very
+hard to reconcile with corruption that scribbled MacsBug and handed the Finder a wild pointer.
+The same was true on v005 during the run that hung.
+
+Also differed between the two runs: **FW400 port 1 here, port 2 in the hang.** Both read
+identically in earlier testing, but it is a real variable alongside "v006" and "intermittent".
+
+#### The control that would settle it
+
+Same configuration with the **stock** `FireWire Enabler` restored, 30+ minutes. That runs fine on
+stock: the iBook is 1394a and honestly reports S400, so it enumerates unaided; only the LaCie
+loses S800. Hangs on stock and the extension is cleared outright. Survives repeatedly and
+suspicion returns here.
+
 ## Incident: MDD hung while idle after run 5, 2026-08-26. Unattributed, not recurred
 
 After run 5 (log 08:14) the machine was left idle with the LaCie on the FW800 port and a clamshell
