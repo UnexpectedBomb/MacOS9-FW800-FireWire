@@ -130,7 +130,7 @@ class Asm:
 def selftest():
     """Every expectation below is a real instruction lifted from Apple's binaries."""
     a = Asm(0x80000000)
-    a.mflr(0)                              # 0x8000ff14 in FWServicesLib
+    a.mflr(0)                              # 0x8000ff14 in the OS 9 FireWire binaries
     a.mtlr(0)                              # 0x8000cb4
     a.mtctr(5)                             # 0x8000ffe8
     a.rlwinm(4, 4, 18, 30, 31)             # 0x8000ffb4  the speed-map extract
@@ -141,7 +141,7 @@ def selftest():
     a.not_(3, 8)                           # 0x80011cc4  nor r3,r8,r8
     a.addi(9, 27, 0xC)                     # 0x8000ff8c  addi r9,r27,0xc
     a.cmpwi(3, 0)                          # 0x80002cdc
-    a.sub(8, 8, 8)                         # 0x8000000c in FWServicesLib
+    a.sub(8, 8, 8)                         # 0x8000000c, same source
     a.stmw(24, -0x20, 1)                   # 0x80002d04
     a.lmw(26, -0x18, 1)                    # 0x80000b9c
     a.blr()                                # 0x80002cc0

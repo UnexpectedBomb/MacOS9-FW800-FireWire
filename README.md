@@ -1,15 +1,16 @@
 # FireWire S800 for the Power Mac G4 MDD (FW800) under Mac OS 9
 
 Restores all three FireWire ports on a Power Mac G4 MDD FW800 (PowerMac3,6) running Mac OS 9.2.2:
-the two FW400 ports at S400, and the FW800 port at S800, at the same time. The whole fix is one
-patched extension. `FireWire Support` stays stock.
+the two FW400 ports at S400, and the FW800 port at S800, at the same time. One patched extension,
+`FireWire Enabler`. Nothing else is modified.
 
 Stock behaviour on this machine is that the two FW400 ports do not enumerate a device at all, and
 the FW800 port runs at S400.
 
 ## The defect, in Apple's own words
 
-`FWServicesLib` builds the IEEE 1394 speed map from the `sp` field of each node's self-ID packet.
+Mac OS 9's FireWire family builds the IEEE 1394 speed map from the `sp` field of each node's
+self-ID packet.
 `sp` is two bits, and the value 3 is **reserved** in 1394a. 1394b uses it to mean "S400 or better,
 ask the PHY". It does not mean S800.
 
@@ -37,7 +38,7 @@ FWIM (`FireWire Enabler`, the OHCIFWIM container) is hooked immediately before i
 self-IDs up to `FWProcessSelfIDs`. For each of its own ports it reads page 0 registers 8, 9 and 11
 (Connected, Negotiated_speed, Beta_mode), maps each node to the port it arrives on, and clamps
 that node's self-ID `sp` to what its own hop can actually carry. The family's existing
-min-propagation then produces a correct map with no change to `FireWire Support` at all.
+min-propagation then produces a correct map, with nothing else in the system altered.
 
 The local node's own `sp` is deliberately left at S800. That is what allows one speed map to give
 S800 to a beta neighbour and S400 to a legacy one simultaneously.
@@ -69,16 +70,16 @@ overhead. A faster device has more headroom to recover. Details in
 
 ## Install
 
-Both files go in the System Folder's Extensions folder. Keep the originals.
+`FireWire Enabler` in the System Folder's Extensions folder is the only file that changes. Keep
+the original.
 
-| file | note |
-|---|---|
-| `FireWire Support` | must be **stock**. If a previous global-clamp build is installed, put the stock one back first, or it masks everything. |
-| `FireWire Enabler` | the patched build. Reads **2.8.8** in Extensions Manager against a stock 2.8.7. |
+Expand `artifacts/FireWire S800 Enabler.bin`. It produces a file already named `FireWire Enabler`,
+so it drops straight in. It reads **2.8.8** in Extensions Manager against a stock 2.8.7, which is
+how you tell at a glance which one is installed.
 
-`FWFixCheck` is a read-only diagnostic. It scans the System heap for the hook's counter block and
-reports what the hook decided: per-port state, beta flag and negotiated speed, each node's own
-`sp` against the ceiling applied to it, and whether `FireWire Support` really is stock.
+`FWFixCheck` is a read-only diagnostic. It scans the System heap for the patch's counter block and
+reports what it decided: per-port state, beta flag and negotiated speed, and each node's own `sp`
+against the ceiling applied to it.
 
 ## Limitations, stated plainly
 
@@ -116,16 +117,13 @@ else is appended, and the data and loader sections come through byte-identical.
 | path | purpose |
 |---|---|
 | `artifacts/FireWire S800 Enabler.bin` | the patched extension, MacBinary. Expands to a file already named `FireWire Enabler`. |
-| `artifacts/FireWire_Support_STOCK_2.8.7.bin` | stock `FireWire Support`, to revert to. |
 | `artifacts/FWFixCheck.bin` | the diagnostic. |
-| `artifacts/FireWire_Support_S400fix_v3.bin` | **superseded.** The earlier global S400 clamp. Installing it now would mask the current fix. Kept only because it was previously released. |
 | `tools/patch-firewire-enabler.py` | the patcher. All the reasoning is in its docstring and comments. |
 | `tools/ppcasm.py` | a small PowerPC assembler whose encoders are each checked against a real instruction from the Apple binaries. It refuses `addi` with `RA=0`, a load or store based on `r0`, and any volatile register held across a `bl`. Each of those caught a real bug here. |
-| `tools/versstamp.py` | the `vers` (1) rewrite, shared with `stamp-firewire-support.py`. |
+| `tools/versstamp.py` | the `vers` (1) rewrite that stamps the patched build 2.8.8. |
 | `tools/fw-fixcheck/` | diagnostic source, for the Retro68 PowerPC toolchain. |
 | `docs/S800-RUNBOOK.md` | every hardware run, what it asked, what would have falsified it, and the three bugs found on the way. |
 | `docs/QUICKBENCH-S800-vs-S400.md` | the throughput comparison and why it is only about ten percent. |
-| `docs/SUPERSEDED-one-byte-fix.md` | the earlier global clamp and the original defect analysis. |
 | `logs/` | raw diagnostic output from every run quoted above. |
 
 ## Credit

@@ -5,10 +5,10 @@
 
 WHY THIS EXISTS
 ---------------
-The shipped FW400 fix clamps the family's speed map to S400 for *every* node, by one
-byte in `FireWire Support`'s `FWServicesLib`. That is monotonic: it buys the two FW400
-ports at the cost of the FW800 port's S800. This patch replaces it, so `FireWire
-Support` goes back to STOCK and the whole fix lives in one extension.
+On a Power Mac G4 MDD FW800 the two FW400 ports do not enumerate a device at all, and
+the FW800 port runs at S400. Both symptoms come from one defect in how the FireWire
+family reads self-ID speed codes. This patch corrects it inside the FWIM, so
+`FireWire Enabler` is the only file that changes.
 
 THE DEFECT, IN APPLE'S OWN WORDS
 --------------------------------
@@ -21,7 +21,7 @@ self-ID field OS 9 does and says:
 
 `sp == 3` is *not* "S800". Per 1394a it is reserved, and 1394b uses it to mean "S400 or
 better, ask the PHY". OS X then does try-and-see: on a failed transaction it steps the
-node's speed down and retries. OS 9's `FWServicesLib` has no step-down; it stores `sp`
+node's speed down and retries. The OS 9 family has no step-down; it stores `sp`
 verbatim, so two 1394b nodes joined by a legacy cable both claim S800 on a hop that
 physically carries S400, and the transfer fails. That is the FW400-ports bug.
 

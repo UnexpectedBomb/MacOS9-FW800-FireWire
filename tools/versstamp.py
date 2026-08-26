@@ -1,7 +1,6 @@
 """versstamp.py — rewrite a file's own `vers` (1) strings in place, same length.
 
-Extracted from stamp-firewire-support.py so the patcher and the standalone stamper
-share ONE implementation of the resource-fork walk. Both strings are rewritten at
+One implementation of the resource-fork walk, used by the patcher. Both strings are rewritten at
 exactly their existing length (space padded, refused if the new text will not fit),
 so no resource offset, no resource map and no fork length changes.
 

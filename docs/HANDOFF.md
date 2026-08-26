@@ -1,7 +1,7 @@
 # HANDOFF: resolved
 
 The S800 work this document used to describe is **done**. All three FireWire ports run at their
-proper speeds from a single patched extension, and `FireWire Support` is back to stock.
+proper speeds from a single patched extension, `FireWire Enabler`.
 
 See `../README.md` for what shipped and `S800-RUNBOOK.md` for every hardware run, what each one
 asked, what would have falsified it, and the three bugs found along the way.

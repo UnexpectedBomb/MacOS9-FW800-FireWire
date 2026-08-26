@@ -2,8 +2,8 @@
 
 Goal: one drop-in extension that gives the two FW400 ports S400 **and** the FW800 port S800,
 at the same time. The clamp lives in the FWIM, which asks the PHY what each of its own ports
-actually negotiated and clamps each node to the port it arrives on. `FireWire Support` reverts
-to stock, so the whole fix is one file.
+actually negotiated and clamps each node to the port it arrives on. `FireWire Enabler` is the
+only file that changes.
 
 ## Install
 
@@ -11,7 +11,6 @@ From `artifacts/`, all MacBinary:
 
 | file | goes to | note |
 |---|---|---|
-| `FireWire_Support_STOCK_2.8.7.bin` | Extensions | **revert first.** The old global clamp masks everything below. Deliberately *not* stamped: it is genuinely stock, and saying otherwise would be a lie in Get Info. |
 | `FireWire S800 Enabler.bin` | Extensions | start with this one. Reads **2.8.8** in Extensions Manager against stock 2.8.7 |
 | the `desc` variant (not shipped; see `--both`) | keep to hand | the other ordering, see run 5 |
 | `FWFixCheck.bin` | anywhere | the diagnostic. Writes `FWFixCheck.log` next to itself. |
@@ -25,9 +24,6 @@ into Extensions with no rename — which also means they are indistinguishable o
 **Expand one at a time**, and treat the log as the authority: FWFixCheck reads the ordering out
 of the resident block, so a mislabelled file cannot mislead you.
 
-Superseded builds have been moved to `old_firewire/` on the share, out of the way. In particular
-the three `FireWire_Support_S400fix*.bin` files are the OLD GLOBAL CLAMP; installing one now
-would void every run below.
 
 Keep the originals. Reverting is: put both stock extensions back. Stock `FireWire Enabler`
 md5 is `1a3648314b1a9b9bc9dc76c6b8187aaf`.
@@ -51,16 +47,13 @@ device does not mount. Visible, harmless, and fixed by swapping the file.
 
 * **block ABSENT** — the patched Enabler is not resident. Almost certainly the Mac OS ROM's
   own `pciclass,0c0010` parcel bound instead of the extension, the same ambiguity `FWPatchCheck
-  v2` hit with `FWServicesLib`. Says nothing about the clamp; the answer is to patch the ROM
+  v2` hit with the family library. Says nothing about the clamp; the answer is to patch the ROM
   parcel too.
 * **block present, `hook calls 0`** — resident but never ran.
 * **`mode PER-CONNECTION`** — the per-port map was accepted; each `node N ceiling S___` line is
   what that node was clamped to.
 * **`mode GLOBAL FALLBACK`** — the topology was not a plain star centred on this Mac, or the
   PHY was unreadable, so everything got the minimum. Correct and safe, just not fast.
-
-`STOCK 1 / OLD-CLAMP 0` on the FWServicesLib line is required for any of it to count. Three
-beeps means the old global clamp is still installed and the run is void.
 
 ## Run 1 in full — proving the patched Enabler loads and binds
 
@@ -85,30 +78,26 @@ near MMIO, so this class of failure reports itself instead of crashing.
 
 ### Step 0 — the control, on the machine exactly as it stands now
 
-Do this **before touching any extension.** The machine currently has the old patched
-`FireWire Support` (the global S400 clamp) and the stock `FireWire Enabler`.
+Do this **before touching any extension**, with the stock `FireWire Enabler` still in place.
 
 1. Expand `FWFixCheck.bin` and run it.
 2. Expect: **three beeps**, and in the log
 
    ```
-   FWServicesLib speed-map copies:  STOCK 0   OLD-CLAMP 1
-   *** THE OLD GLOBAL S400 CLAMP IS STILL RESIDENT. ***
    *** FWIM COUNTER BLOCK NOT FOUND. ***
    ```
 
 3. Rename the log to `FWFixCheck_CONTROL.log` and keep it.
 
-This proves two things that step 3 otherwise has to assume: the scan really does detect the old
-clamp when it is present, and the `S8FX` block really is absent when the patched Enabler is not
-installed. Without it, "block found" in step 3 could just mean the scan matches anything.
+This proves what step 3 otherwise has to assume: the `S8FX` block really is absent when the
+patched Enabler is not installed. Without it, "block found" in step 3 could just mean the scan
+matches anything.
 
 ### Step 1 — install
 
 In the System Folder's Extensions folder, keeping the originals somewhere safe:
 
-1. Replace `FireWire Support` with the expansion of `FireWire_Support_STOCK_2.8.7.bin`.
-2. Replace `FireWire Enabler` with the expansion of `FireWire S800 Enabler.bin`.
+1. Replace `FireWire Enabler` with the expansion of `FireWire S800 Enabler.bin`.
 3. Check both are enabled in Extensions Manager.
 
 ### Step 2 — reboot with the FireWire bus empty
@@ -125,7 +114,6 @@ Expect **two beeps**. The log lands next to the app (the window's last line says
 the banner says `FWFixCheck v7`, then look for:
 
 ```
-FWServicesLib speed-map copies:  STOCK 1   OLD-CLAMP 0
 FWIM block @0x........   port->node ordering: ASCEND
   hook calls 1            clamped last 1     total 1
   PHY reg2 0xE3 (Num_Ports 3)   reg7 0x..   localID 0
@@ -141,7 +129,6 @@ FWIM block @0x........   port->node ordering: ASCEND
 
 | line | proves |
 |---|---|
-| `STOCK 1 / OLD-CLAMP 0` | `FireWire Support` really is stock, so nothing downstream is masked |
 | block found | the patched Enabler's code section is resident |
 | **`hook calls` > 0** | **the decisive one.** Resident is not the same as bound; a non-zero count proves the *extension's* OHCIFWIM is what the family actually calls, not the ROM's `pciclass,0c0010` parcel |
 | `ordering: ASCEND` | the variant you think you installed is the one running |
@@ -160,11 +147,10 @@ calls 0` and the other will not.
 * **Block found, `hook calls 0`** — resident but off the live path. Hot-plug the LaCie, wait a
   few seconds, and re-run: a bus reset must drive the count up. If it stays at 0, self-IDs are
   reaching the family by a path neither hooked call site covers.
-* **Three beeps** — the old global clamp is still installed. Step 1 did not take; the run is void.
 
 ### Re-verification on a fresh OS 9 install, 2026-08-26 (build v005)
 
-New 80 GB disk, clean Mac OS 9 install, stock `FireWire Support` 2.8.7, MacsBug present. Logs in
+New 80 GB disk, clean Mac OS 9 install, MacsBug present. Logs in
 `logs/FWFixCheck_freshinstall_*.log`.
 
 | check | configuration | port reading | ceiling | clamped |
@@ -236,7 +222,6 @@ is not confounded by a new build.
 ### Run 1 — PASSED, 2026-08-25
 
 ```
-FWServicesLib speed-map copies:  STOCK 1   OLD-CLAMP 0
 FWIM block @0x00E744D8   port->node ordering: ASCEND
   hook calls 1   clamped last 1   total 1
   PHY reg2 0xE3 (Num_Ports 3)   reg7 0x20   localID 0
@@ -360,7 +345,7 @@ Cabling was **6-pin to 6-pin**, the Mac's FW400 port to the LaCie's own FW400 po
 either way, so the hop is a legacy DS connection regardless of the far end.
 
 `Beta_mode = 0` correctly read on a FW400 port, the node clamped to S400, and the drive mounted
-and benchmarked. The FW400 fix survives the move out of `FireWire Support` and into the FWIM.
+and benchmarked. The FW400 fix survives being moved into the FWIM.
 The PHY's whole-PHY summary agreed independently: `reg6 0x50, Max_Legacy_SPD 2 (S400)`.
 
 `clamped last 1` is worth reading closely: in per-connection mode only remote nodes are touched,
@@ -517,7 +502,7 @@ Delete the old log first and read from the last banner.
 |---|---|---|---|---|
 | 1 | nothing attached | Does the patched Enabler load and bind? | see the full sequence above | block absent → the ROM parcel binds, patch it too |
 | 2 | drive on the FW800 port, 9-to-9 | Does S800 survive? | port 0 `beta negotiated S800`, `node 0 ceiling S800`, `clamped 0`, drive mounts | any clamp here means the port read is wrong |
-| 3 | drive on a FW400 port | Does the FW400 fix still hold with `FireWire Support` stock? | that port `legacy(DS) negotiated S400`, node ceiling S400, drive mounts | drive fails → the FWIM clamp is not equivalent to the family clamp |
+| 3 | drive on a FW400 port | Does the FW400 fix still hold once the clamp lives in the FWIM? | that port `legacy(DS) negotiated S400`, node ceiling S400, drive mounts | drive fails → the FWIM clamp is not equivalent to the family clamp |
 | 4 | LaCie on the FW800 port via a **9-to-6 cable**: 9-pin end in the Mac, 6-pin end in the LaCie's FW400 port | Does a legacy hop on the **beta** port get caught? | port 0 `legacy(DS)`, `own sp S800 -> ceiling S400`, drive mounts | port 0 still reads `beta` → `Beta_mode` does not track cable type, and the drive will not mount |
 | 5 | **LaCie on the FW800 port AND the clamshell iBook on a FW400 port** (see below) | **The whole point.** Two speeds at once? | `mode PER-CONNECTION`, one node S800 and one S400, both enumerate | the S400 node does not appear → ordering is backwards, swap in the `descend` build and repeat |
 
@@ -536,7 +521,7 @@ passes. Root election does not matter: if a leaf wins root the MDD simply has on
 one child port, which the mapping handles explicitly.
 
 **Target Disk Mode (hold T at startup) is a convenience, not the test.** It gives a volume to copy
-files onto, and OS 9's `FireWire Support` carries the SBP-2 drivers to mount it. But the original
+files onto, and OS 9 carries the SBP-2 drivers to mount it. But the original
 defect was that a config-ROM read at the wrong speed fails and *the device never appears at all*,
 so enumeration is itself the discriminator. An iBook booted normally still puts a node on the bus
 and still proves the map. If TDM fails, or the iBook's disk has been through a later Mac OS X and
