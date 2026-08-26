@@ -92,7 +92,6 @@ against the ceiling applied to it.
   run 5 proves per-port ceilings are assigned correctly and simultaneously. The specific case of a
   second 1394b device on a legacy hop alongside an S800 device follows from those as an inference,
   not as a measurement.
-* **FW400 port 1 has not been tested.** All legacy testing used port 2. Same PHY, same code path.
 * **Sleep and wake are broken on this machine independently of FireWire**, confirmed with no
   FireWire device ever attached. Not addressed here.
 
