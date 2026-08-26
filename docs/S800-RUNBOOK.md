@@ -182,40 +182,64 @@ With nothing attached, the only self-ID is the Mac's own, and the reporter tags 
 The tag is only meaningful with two devices at different speeds, which is the case it was written
 for. Worth qualifying with the local node ID if FWFixCheck is rebuilt for any other reason.
 
-## Incident: MDD hung while idle after run 5, 2026-08-26
+## Incident: MDD hung while idle after run 5, 2026-08-26. Unattributed, not recurred
 
-After run 5 completed (log 08:14) the machine was left idle with the LaCie on the FW800 port and
-the iBook in TDM on FW400 port 2. On returning: desktop icons gone, cursor moving, clicks dead.
-Nothing had been touched. MacsBug was not installed, so no stack crawl exists — **install it
-before further testing; this project will hang again.**
+After run 5 (log 08:14) the machine was left idle with the LaCie on the FW800 port and a clamshell
+iBook in TDM on FW400 port 2. On returning: desktop icons gone, cursor moving, clicks dead,
+nothing touched. No MacsBug installed at the time, so no stack crawl exists. **MacsBug is now
+installed; keep it that way.**
 
-What the follow-up established:
+### Why it is deliberately absent from the public announcement
 
-* **System sleep was already set to never.** Display sleep at 20 minutes only, which does not
-  wedge a machine, and a bad display wake would have left the icons present. The sleep theory —
-  attractive because sleep/wake is independently broken on this machine — is essentially out.
-* **Disk First Aid found "invalid BTree header, 0, 0" on the MDD's own boot volume.** Catalog or
-  extents damage on the internal ATA disk.
+Two concrete alternative causes carry hard evidence, against a mechanism for the patch that was
+always weak. Publishing an unattributed anomaly beside a fix implies a link the evidence does not
+support, which is its own inaccuracy. It stays recorded here in full.
 
-Candidates, in the order they now look plausible:
+### What the follow-up established
 
-1. **A failing ATA disk.** An intermittent hang and B-tree damage on the same volume is the
-   classic signature: the driver retries a bad sector, task level blocks, interrupts keep drawing
-   the cursor. It explains both observations with one cause rather than two coincidences.
-2. **The Finder dying on an already-damaged catalog.** It walks the catalog to draw the desktop;
-   a bad node there produces exactly this picture.
-3. **Something FireWire.** Weak, and weaker than it looks: **the hook only executes on a bus
-   reset**, and an idle machine with nothing touched should not be generating any.
+* **System sleep was already set to never.** Display sleep at 20 minutes only, which does not wedge
+  a machine, and a bad display wake would have left the icons present.
+* **Disk First Aid found "invalid BTree header, 0, 0" on that machine's own boot volume.** Repair
+  claimed success and verify failed again every time, which is the known limit of DFA on B-tree
+  damage rather than evidence about the drive. The disk was replaced.
+* **The iBook has independent hardware faults**: no startup chime at all, on internal speaker and
+  on headphones, and a screen fault that appeared days later. Its logic board is degrading.
+* **Nothing has recurred** on the replacement disk across the fresh-install checks and a subsequent
+  idle period including a display sleep and wake with the LaCie mounted.
 
-The patched Enabler can be excluded as a *direct* cause of the corruption on grounds of
-mechanism, not loyalty: the damaged volume is on the **internal ATA bus**, and the hook touches
-only its own 128-byte scratch block inside the FWIM's code section and self-ID quadlets in
-FireWire buffers. It has no path to the File Manager, to disk drivers, or to ATA. It is *not* yet
-excluded as a cause of the hang.
+### Candidates, best first
 
-Test discipline for the resumption: repair or replace the disk first — data gathered on a machine
-with a known-bad filesystem is uninterpretable — and keep `asc_v5` unchanged so the hang question
-is not confounded by a new build.
+1. **A target-disk-mode volume going quiet.** The best fit for the symptom *including the icons*.
+   A TDM target is an SBP-2 device backed by a laptop drive that spins down when idle. If the
+   Finder touches that mounted volume and the target does not answer, it blocks inside the File
+   Manager. Display sleep was on at 20 minutes, so waking the display demands a redraw the blocked
+   Finder never performs: icons do not come back, clicks are never processed, and the cursor keeps
+   moving because it is drawn by the interrupt handler.
+2. **The Finder blocked or dying on the already-damaged boot catalog.** Same shape, different
+   volume.
+3. **Something FireWire.** Weak. ⚠ But note a correction to the earlier reasoning here: the claim
+   that "the hook only runs on a bus reset, and an idle machine generates none" is **not safe with
+   a TDM target attached**, because an SBP-2 device that times out can provoke resets. The
+   mechanism is weak, not absent.
+
+The patch is excluded as a *direct* cause of the disk corruption on grounds of mechanism: the
+damaged volume was on the **internal ATA bus**, and the hook touches only its own 128-byte scratch
+block inside the FWIM's code section and self-ID quadlets in FireWire buffers. No path to the File
+Manager, to disk drivers, or to ATA. It is *not* excluded as a cause of the hang.
+
+### Why watch 2 was abandoned
+
+The plan was to reproduce it deliberately: new disk, LaCie plus a TDM target, one variable. The
+iBook was unusable, and the substitute (the FW400 MDD) **shut itself down about 20 seconds after
+power-on with the 6-to-6 cable attached, and booted normally with it removed.** Both ends of a
+6-pin link source bus power, so a fault anywhere in that path can trip a supply, and retrying into
+an overcurrent is how a bad port becomes a dead one.
+
+The test could only ever have *confirmed* the hypothesis, never refuted it: a desktop drive in the
+substitute machine may never spin down at all, so a clean result would have been meaningless. Risk
+to a second machine's FireWire hardware against a phrasing improvement in an announcement is not a
+trade worth making. **If the community reproduces it, that is better evidence than anything this
+one machine could have produced.**
 
 ## Results so far
 
