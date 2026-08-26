@@ -244,6 +244,44 @@ stock: the iBook is 1394a and honestly reports S400, so it enumerates unaided; o
 loses S800. Hangs on stock and the extension is cleared outright. Survives repeatedly and
 suspicion returns here.
 
+### Attempted reproduction on v005 FAILED, twice. Investigation closed as unresolved
+
+| run | build | iBook port | idle | outcome |
+|---|---|---|---|---|
+| run 5 | v005 | 2 | hours | **hang** |
+| deliberate reproduction | v005 | 2 | ~10 min | **hang** |
+| control | v006 | 1 | 30 min | clean |
+| control | **stock** | 1 | 40 min | clean |
+| retry | v005 | 1 | 25 min, plus heavy file copying across all three drives | clean |
+| retry | v005 | **2** | 30 min | clean |
+
+Two things died here. The **port-2 correlation** looked perfect for a while (both hangs on port 2,
+every clean run on port 1) and there is no port-asymmetric code in the hook to explain it, so it
+would have had to be physical. Moving back to port 2 on v005 did not reproduce it. And the
+**heavy-I/O attempt** produced nothing: both hangs happened during *idle*, which is the opposite
+of a load-related fault and fits a quiet target better.
+
+**Why the investigation stops here.** 55 minutes of clean v005 time across both ports, after two
+hangs. If the rate were the ~6/hour the ten-minute reproduction implied, that stretch had about a
+0.4% chance of occurring, so the rate is more like <=1/hour and the fast reproduction was luck.
+Establishing a baseline at that rate needs several hours; demonstrating a fix reduced it needs
+several more. That is the better part of a day of machine time to characterise a fault whose most
+likely subject is a clamshell iBook with a dead audio path, a failing screen and a logic board
+degrading on several fronts, in a configuration nobody runs.
+
+**Where it leaves the attribution:**
+
+* *Against the patch*: both hangs happened with it installed. Two events.
+* *For it, mechanically*: in a measured 30-minute idle in this exact configuration the hook logged
+  **zero calls and zero clamps** — dormant, and rewriting nothing outside its own 128-byte scratch
+  block. Equally true on v005 when it hung. Getting from that to corrupted MacsBug code and a wild
+  pointer in the Finder is very hard.
+* *Cause*: genuinely unknown.
+
+Ongoing exposure comes free from running v006 as the normal configuration, which is more hours
+than any deliberate test would buy. If anyone reproduces it, that is better evidence than this one
+machine can produce.
+
 ## Incident: MDD hung while idle after run 5, 2026-08-26. Unattributed, not recurred
 
 After run 5 (log 08:14) the machine was left idle with the LaCie on the FW800 port and a clamshell
@@ -302,6 +340,41 @@ substitute machine may never spin down at all, so a clean result would have been
 to a second machine's FireWire hardware against a phrasing improvement in an announcement is not a
 trade worth making. **If the community reproduces it, that is better evidence than anything this
 one machine could have produced.**
+
+### ⚠ The founding premise was WRONG: stock already ran the FW800 port at S800 (2026-08-26)
+
+This project opened from the statement that on the FW800 MDD "the two FW400 ports are not
+recognised at all and the FW800 port works but only at S400". **The second half was never measured
+and is false.** Measured at last, mean over transfer sizes >= 64K:
+
+| configuration | seq read | seq write |
+|---|---|---|
+| stock, beta port, drive alone | 25.22 | 22.17 |
+| patched, beta port, drive alone | 25.60 | 22.38 |
+| patched, FW400 port, drive alone | 23.15 | 20.83 |
+| stock, beta port, a legacy device also on the bus | 22.97 | 20.19 |
+
+Patched against stock on the same port is **+1.5% read, +1.0% write**: nothing. The model always
+said so — stock reads both nodes' `sp` as 3, takes the minimum, and a beta hop carries S800 — and
+the premise contradicted it. When a model and an unmeasured assumption disagree, measure.
+
+**Why it survived so long.** The first stock measurement was taken with the iBook also attached,
+which put stock at 22.97 and made it look like S400. It is not the hop speed: a legacy device
+merely being present on the bus costs the beta device **8.9%** in hybrid-mode overhead, larger gap
+counts and border-node latency. That accounts for essentially the whole apparent difference. A
+comparison is only as good as the variable you actually held still.
+
+**What the patch is therefore worth**, and the README and announcement now say this:
+
+|  | FW400 ports | FW800 port |
+|---|---|---|
+| stock | do not enumerate a 1394b device at all | S800 |
+| the earlier one-byte global clamp | work | S400 |
+| this patch | work | S800 |
+
+Against stock the gain is the FW400 ports, not throughput. Against the previously released fix it
+is keeping S800 rather than trading it away, worth +10.6% read / +7.5% write on that port. Both
+are real; "restores S800" against stock is not, and nearly shipped in the README.
 
 ## Results so far
 
