@@ -4,8 +4,15 @@ Restores all three FireWire ports on a Power Mac G4 MDD FW800 (PowerMac3,6) runn
 the two FW400 ports at S400, and the FW800 port at S800, at the same time. One patched extension,
 `FireWire Enabler`. Nothing else is modified.
 
-Stock behaviour on this machine is that the two FW400 ports do not enumerate a device at all, and
-the FW800 port runs at S400.
+|  | FW400 ports | FW800 port |
+|---|---|---|
+| stock | **do not enumerate a 1394b device at all** | S800 |
+| the earlier one-byte global clamp released here | work | **S400** |
+| this patch | work | S800 |
+
+So the gain over **stock** is that the two FW400 ports become usable. The gain over the
+**previously released fix** is keeping S800 on the FW800 port instead of trading it away for the
+FW400 ports. Measurements in `docs/QUICKBENCH-S800-vs-S400.md`.
 
 ## The defect, in Apple's own words
 
@@ -60,22 +67,21 @@ Measured on the target machine, Mac OS 9.2.2, one LaCie FW800 drive and a clamsh
 | 4 | drive on the FW800 port, 9-to-6 | `legacy(DS) S400`, clamped, mounts |
 | 5 | drive on FW800 + iBook on FW400 | S800 and S400 in one map, both work |
 
-Throughput, same drive and controller with only the port changed, so the single variable is the
-hop speed. S800 was faster in 39 of 44 QuickBench measurements. Averaged over transfer sizes of
-64K and above: sequential read +10.6%, sequential write +7.5%, random read +10.6%, random write
-+6.4%. Peak sequential read went from 26.85 to 30.65 MB/sec. The gain is modest because the drive
-peaks near 30 MB/sec and a FireWire 400 hop already delivers roughly 30 MB/sec after SBP-2
-overhead. A faster device has more headroom to recover. Details in
-`docs-QUICKBENCH-S800-vs-S400.md`.
+Throughput, measured on the same drive and controller with only one variable changed at a time.
+Patched against stock on the beta port is **+1.5% read**, which is to say nothing: stock was
+already S800 there. S800 against S400 as hop speeds is **+10.6% read and +7.5% write**, which is
+what the earlier global clamp gave away and this patch keeps. A legacy device merely being present
+on the bus costs the beta device a further **8.9%**. Details and the full tables in
+`docs/QUICKBENCH-S800-vs-S400.md`.
 
 ## Install
 
 `FireWire Enabler` in the System Folder's Extensions folder is the only file that changes. Keep
 the original.
 
-Expand `artifacts/FireWire S800 Enabler.bin`. It produces a file already named `FireWire Enabler`,
-so it drops straight in. It reads **2.8.8** in Extensions Manager against a stock 2.8.7, which is
-how you tell at a glance which one is installed.
+Expand `artifacts/FireWire S800 Enabler.bin`. It produces a file already named `FireWire Enabler`, so it drops
+straight in. It reads **2.8.8** in Extensions Manager against a stock 2.8.7, which is how you tell
+at a glance which one is installed.
 
 `FWFixCheck` is a read-only diagnostic. It scans the System heap for the patch's counter block and
 reports what it decided: per-port state, beta flag and negotiated speed, and each node's own `sp`
