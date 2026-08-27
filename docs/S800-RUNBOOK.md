@@ -327,22 +327,29 @@ degrading on several fronts, in a configuration nobody runs.
 otherwise. That machine has no audio at all on speaker or headphones and developed a screen fault
 days later, so its logic board is evidently failing on several fronts.
 
-#### The test that could have contradicted that, run 2026-08-27
+#### The test that could have contradicted that: six hours idle, 2026-08-27
 
 The gap in the position above was that the **healthy** TDM target had only ever been attached for
 minutes at a time, during runs 6 and 6b. So: v006, LaCie on the FW800 port and the Power Mac G5 in
-TDM on a FW400 port, the run 6 topology exactly, **left idle for over two hours. No hang.** The run
-was still in progress when this was written, so two hours is a floor.
+TDM on a FW400 port, the run 6 topology exactly, **left idle for six hours. No hang.** Untouched
+throughout, stable at the end.
 
-That exonerates the **configuration**, which is the part that was genuinely open: two 1394b devices,
-one clamped and one not, one speed map, a TDM target mounted throughout — the same shape as both
-hangs, minus the iBook. If the patch or the mixed-speed map were the mechanism, that is where it
-should have appeared.
+**That excludes the configuration.** The section above put the fault rate at <=1/hour; if the
+configuration were responsible at that rate, six clean hours has a Poisson probability of e⁻⁶, about
+**0.2%**. Both hangs also arrived well inside six hours, one after roughly ten minutes and one after
+"hours", so the window is long compared with the intervals actually observed. The shape under
+suspicion is therefore cleared: two 1394b devices, one clamped and one not, one speed map, a TDM
+target mounted the whole time. If the patch or the mixed-speed map were the mechanism, that is where
+it should have appeared.
 
-It does not *prove* the attribution. The fault rate was estimated at <=1/hour and the iBook itself
-went 55 minutes clean twice, so a clean stretch of this length lowers the probability that the
-configuration is at fault without driving it to zero. The honest statement is that the one test
-which could have contradicted the working position was run, and did not.
+What is still not established, and none of it is actionable: the **mechanism** was never identified,
+the only MacsBug capture came from a session whose own code was already corrupt, a fault **rare
+enough** (say 1/50 hours) is excluded by neither this run nor the original two events, and the iBook
+was never made to reproduce it on demand either, so the attribution rests on that machine's
+independent faults plus this exclusion rather than on a demonstration.
+
+**Practical status: closed for the shipped configuration.** Ongoing normal use is the only remaining
+instrument, and it costs nothing.
 
 Ongoing exposure comes free from running v006 as the normal configuration, which is more hours
 than any deliberate test would buy. If anyone reproduces it, that is better evidence than this one
