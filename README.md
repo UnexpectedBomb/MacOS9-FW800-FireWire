@@ -66,6 +66,12 @@ Measured on the target machine, Mac OS 9.2.2, one LaCie FW800 drive and a clamsh
 | 3 | drive on a FW400 port, 6-to-6 | `legacy(DS) S400`, clamped, mounts |
 | 4 | drive on the FW800 port, 9-to-6 | `legacy(DS) S400`, clamped, mounts |
 | 5 | drive on FW800 + iBook on FW400 | S800 and S400 in one map, both work |
+| 6 | drive on FW800 + **Power Mac G5 in target disk mode** on FW400 | **two 1394b devices, both claiming S800**: the beta one keeps S800, the legacy one is clamped to S400, both mount |
+| 6b | the same, with the **stock** extension | the G5 does not appear at all, while the LaCie mounts. The PHY still reports the legacy segment, so the link is up and only the speed map is wrong |
+
+Run 6 is the one that matters most. Both devices are 1394b and both report `sp = 3`, so it is the
+configuration stock cannot handle at all, and the only one where a wrong port-to-node mapping
+fails visibly rather than silently. Log in `logs/FWFixCheck_G5_TDM_v006.log`.
 
 Throughput, measured on the same drive and controller with only one variable changed at a time.
 Patched against stock on the beta port is **+1.5% read**, which is to say nothing: stock was
@@ -94,10 +100,6 @@ against the ceiling applied to it.
   measure the hops it terminates, a legacy hop deeper in the tree is invisible in the self-ID
   stream, and assuming S800 there would reproduce the original defect. See the warning in
   `tools/patch-firewire-enabler.py`.
-* **One FW800 device was available for testing.** Runs 2 through 4 prove each half separately, and
-  run 5 proves per-port ceilings are assigned correctly and simultaneously. The specific case of a
-  second 1394b device on a legacy hop alongside an S800 device follows from those as an inference,
-  not as a measurement.
 * **Sleep and wake are broken on this machine independently of FireWire**, confirmed with no
   FireWire device ever attached. Not addressed here.
 

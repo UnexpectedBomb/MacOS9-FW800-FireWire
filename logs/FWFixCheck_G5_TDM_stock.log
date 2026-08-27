@@ -1,0 +1,24 @@
+FWFixCheck v8 - did the FWIM speed clamp run?
+Read-only apart from the PhyControl read requests a PHY read needs.
+
+=========================================================
+  SYSTEM HEAP SCAN
+    1. the FWIM hook's counter block  'S8FX' 'v0nn' .. 'ENDS'
+    2. FWServicesLib's speed-map instruction, which must be STOCK
+=========================================================
+System heap 0x00002800 .. 0x033593E0  52570 KB
+---------------------------------------------------------
+FWServicesLib speed-map copies:  STOCK 1   OLD-CLAMP 0
+---------------------------------------------------------
+*** FWIM COUNTER BLOCK NOT FOUND. ***
+The patched FireWire Enabler is not resident. Either it is not
+installed, or the Mac OS ROM's own pciclass,0c0010 parcel bound
+instead of the extension. Says NOTHING about the clamp itself.
+
+=========================================================
+  THE PHY'S OWN VIEW, READ NOW
+=========================================================
+AAPL,address = 0xF5000000
+PCI command register 0x0006  MEM-space ENABLED
+oracle OK: OHCI version 0x00010010  byte order SWAPPED
+now: reg2 0xE3   reg6 0x50   Max_Legacy_SPD 2 (S400)

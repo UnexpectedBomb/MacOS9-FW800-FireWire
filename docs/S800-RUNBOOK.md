@@ -148,6 +148,51 @@ calls 0` and the other will not.
   few seconds, and re-run: a bus reset must drive the count up. If it stays at 0, self-IDs are
   reaching the family by a path neither hooked call site covers.
 
+### Run 6 — PASSED, 2026-08-27. The last untested case, now measured
+
+LaCie on the FW800 port (9-to-9 beta), **Power Mac G5 in target disk mode on FW400 port 2** via a
+9-to-6 cable. Build v006. Log: `logs/FWFixCheck_G5_TDM_v006.log`.
+
+```
+  hook calls 3   clamped last 1   total 3
+  localID 2   remote nodes 2   mapped to ports 2
+  port 0: CHILD  beta         negotiated S800
+  port 2: CHILD  legacy(DS)   negotiated S400
+  self-ID node 0  its own sp S800  ->  ceiling S800   (the 1394b device)
+  self-ID node 1  its own sp S800  ->  ceiling S400   (the 1394b device)
+  *** PER-CONNECTION. Each node is clamped to its own port. ***
+```
+
+Both G5 volumes and the LaCie mounted together.
+
+**This closes the one gap the README and the announcement had both flagged as inference.** Two
+1394b devices, both honestly reporting `sp = 3`, one keeping S800 on a beta hop and the other cut
+to S400 on a legacy hop, simultaneously, out of one speed map. It is the configuration stock
+cannot handle at all, and until now every two-device run had used the iBook, which is 1394a,
+self-limits, and therefore never exercised the clamp (`clamped 0` in every one of them).
+
+**It also re-confirms the ordering the loud way.** With the iBook a backwards port-to-node mapping
+was invisible: it reports S400 itself, so nothing broke either way. Here, backwards would have
+given the G5 — on a legacy hop, claiming S800 — an S800 ceiling, and it would have failed to
+enumerate. It mounted. Ascending confirmed by a test where the wrong answer breaks something.
+
+#### The stock control, run immediately after (log: `logs/FWFixCheck_G5_TDM_stock.log`)
+
+Same two devices, same ports, same cables, stock `FireWire Enabler`. **Neither G5 volume appeared.
+The LaCie mounted.**
+
+|  | LaCie, beta hop | G5, legacy hop |
+|---|---|---|
+| stock | mounts | **absent** |
+| v006 | mounts, keeps S800 | **mounts**, clamped to S400 |
+
+The log makes it sharper than a bare absence: `Max_Legacy_SPD 2 (S400)` means the PHY negotiated
+with the G5 and knows a legacy segment is present, so the **physical link is up**. The G5 is
+missing because the config-ROM read went out at S800 across a hop carrying S400 and was never
+answered. The defect is isolated to the speed map, with the hardware demonstrably fine.
+
+That is the complete before and after, on one machine, one pair of devices, one set of cables.
+
 ### Re-verification on a fresh OS 9 install, 2026-08-26 (build v005)
 
 New 80 GB disk, clean Mac OS 9 install, MacsBug present. Logs in
