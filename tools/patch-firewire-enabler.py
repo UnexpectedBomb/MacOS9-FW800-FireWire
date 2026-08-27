@@ -5,10 +5,20 @@
 
 WHY THIS EXISTS
 ---------------
-On a Power Mac G4 MDD FW800 the two FW400 ports do not enumerate a device at all, and
-the FW800 port runs at S400. Both symptoms come from one defect in how the FireWire
-family reads self-ID speed codes. This patch corrects it inside the FWIM, so
-`FireWire Enabler` is the only file that changes.
+On a Power Mac G4 MDD FW800 the two FW400 ports do not enumerate a 1394b device at all.
+That is one defect in how the FireWire family reads self-ID speed codes; this patch
+corrects it inside the FWIM, so `FireWire Enabler` is the only file that changes.
+
+The FW800 port is NOT part of the problem: stock already runs it at S800. This project
+opened from the belief that it was capped at S400, and that belief was never measured
+and is wrong. Patched against stock on that port is +1.5% read, which is noise. The
+belief survived because the first stock measurement had a second, legacy-speed device
+also on the bus, and a legacy device merely being present costs the beta device about
+9% in hybrid-mode overhead, which accounts for the whole apparent difference.
+
+So what this patch buys is the two FW400 ports. The reason it clamps per connection
+rather than per bus is to buy them WITHOUT capping the FW800 port to S400, which is
+what a whole-bus clamp does.
 
 THE DEFECT, IN APPLE'S OWN WORDS
 --------------------------------
@@ -28,17 +38,35 @@ physically carries S400, and the transfer fails. That is the FW400-ports bug.
 WHAT THIS PATCH DOES
 --------------------
 OS 9 cannot try-and-see without a rewrite, but the FWIM *owns the PHY*, and the PHY
-knows. TSB81BA3 base register 6 carries `Max_Legacy_SPD`: measured 0 with only the beta
-port connected and 2 (S400) whenever a legacy segment exists (three runs, see `logs/`).
+knows. So: hook the FWIM immediately before it hands the self-IDs up to the family, read
+each of this PHY's own ports, map every remote node to the port it arrives on, and clamp
+that node's self-ID `sp` to what its own hop can actually carry. The family's existing
+min-propagation then produces a correct map with no family patch at all.
 
-So: hook the FWIM immediately before it hands the self-IDs up to the family, read the
-PHY, and if a legacy segment exists clamp the self-ID `sp` fields down to what that
-segment can actually carry. The family's own min-propagation then produces the right
-map with no family patch at all.
+Per port, page 0 registers 8, 9 and 11 give Connected, Negotiated_speed and Beta_mode.
+Register 7 selects the page, and the previous selection is restored afterwards.
 
-    beta port only        -> Max_Legacy_SPD 0 -> no clamp   -> S800
-    any legacy segment    -> Max_Legacy_SPD 2 -> clamp to 2 -> S400 everywhere
-    PHY unreadable        -> clamp to S400 (fail safe, never fail open)
+    port reads beta, S800        -> that node keeps S800
+    port reads legacy(DS), S400  -> that node is clamped to S400
+    both at once                 -> S800 and S400 coexist in one speed map
+
+The local node's own `sp` is deliberately left at 3. That is what lets a single map hand
+S800 to a beta neighbour and S400 to a legacy one simultaneously.
+
+    not a plain star centred on this Mac -> global fallback, everything at S400
+    PHY unreadable, or an odd port count -> global fallback (fail safe, never fail open)
+
+The global fallback is seeded at S400 and only ever lowered, which is correct rather than
+merely cautious: past the first hop this PHY measures nothing, and a legacy hop deeper in
+the tree is invisible in the self-ID stream, so seeding at S800 and taking a minimum over
+the connected ports would reproduce the original defect verbatim on a daisy chain. See
+the warning at the `globalCeil` seed instruction.
+
+An earlier design clamped per *bus* from base register 6 `Max_Legacy_SPD` (measured 0 on
+a beta-only bus, 2 whenever a legacy segment existed). It worked, but it gave S800 away
+the moment any FW400 device was attached, which is the trade this patch exists to remove.
+Reg 6 is no longer load-bearing; the per-port `Beta_mode` read replaced it. It is still
+logged by the diagnostic because it independently corroborates the port reads.
 
 WHERE IT HOOKS
 --------------

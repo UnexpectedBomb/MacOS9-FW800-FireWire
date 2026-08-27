@@ -323,6 +323,27 @@ degrading on several fronts, in a configuration nobody runs.
   pointer in the Finder is very hard.
 * *Cause*: genuinely unknown.
 
+**Working position:** treat it as specific to that particular iBook running TDM until shown
+otherwise. That machine has no audio at all on speaker or headphones and developed a screen fault
+days later, so its logic board is evidently failing on several fronts.
+
+#### The test that could have contradicted that, run 2026-08-27
+
+The gap in the position above was that the **healthy** TDM target had only ever been attached for
+minutes at a time, during runs 6 and 6b. So: v006, LaCie on the FW800 port and the Power Mac G5 in
+TDM on a FW400 port, the run 6 topology exactly, **left idle for over two hours. No hang.** The run
+was still in progress when this was written, so two hours is a floor.
+
+That exonerates the **configuration**, which is the part that was genuinely open: two 1394b devices,
+one clamped and one not, one speed map, a TDM target mounted throughout — the same shape as both
+hangs, minus the iBook. If the patch or the mixed-speed map were the mechanism, that is where it
+should have appeared.
+
+It does not *prove* the attribution. The fault rate was estimated at <=1/hour and the iBook itself
+went 55 minutes clean twice, so a clean stretch of this length lowers the probability that the
+configuration is at fault without driving it to zero. The honest statement is that the one test
+which could have contradicted the working position was run, and did not.
+
 Ongoing exposure comes free from running v006 as the normal configuration, which is more hours
 than any deliberate test would buy. If anyone reproduces it, that is better evidence than this one
 machine can produce.
